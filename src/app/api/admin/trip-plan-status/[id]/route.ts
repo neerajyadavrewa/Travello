@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function PATCH(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: any
 ) {
   const { id } = context.params;
   await connectDB();
