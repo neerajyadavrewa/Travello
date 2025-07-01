@@ -7,10 +7,6 @@ import DetailCard from "@/components/DetailCard";
 import BookingCard from "@/components/BookingCard";
 import { FaMapMarkerAlt, FaClock } from "react-icons/fa";
 
-interface PackageDetailsProps {
-  params: { id: string };
-}
-
 interface TripPlanType {
   title: string;
   description: string;
@@ -24,7 +20,7 @@ interface TripPlanType {
   updatedAt: string;
 }
 
-export default async function PackageDetailsPage({ params }: PackageDetailsProps) {
+export default async function PackageDetailsPage({ params }: { params: any }) {
   await connectDB();
 
   const trip = (await TripPlan.findById(params.id).lean()) as TripPlanType | null;
