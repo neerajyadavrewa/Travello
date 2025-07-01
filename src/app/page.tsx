@@ -36,25 +36,6 @@ const session = await getServerSession(authOptions);
   
     const today = new Date();
   
-   const packagesRaw = await TripPlan.find({
-  status: "approved",
-  lastEntryDate: { $gte: new Date() },
-})
-  .populate("creator", "name image") // populate creator info
-  .sort({ createdAt: -1 })
-   .limit(9)
-  .lean();
-
-const packages = packagesRaw.map((pkg: any) => ({
-  id: pkg._id.toString(),
-  title: pkg.title,
-  description: pkg.description,
-  price: pkg.price,
-  duration: pkg.duration,
-  image: pkg.images?.[0] || "/default-image.jpg",
-  creatorName: pkg.creator?.name || "Unknown",
-  creatorImage: pkg.creator?.image|| "/default-avatar.jpg",
-}));
 //  const packages = [
 //   {
 //     image: "https://assets.serenity.co.uk/58000-58999/58779/1296x864.jpg", // Goa Beach
@@ -204,7 +185,7 @@ const packages = packagesRaw.map((pkg: any) => ({
 </div>
 
       
-       <PopularPackagesSection packages={packages} />
+       <PopularPackagesSection />
 
 
 

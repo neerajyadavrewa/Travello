@@ -1,8 +1,6 @@
-"use client";
-import React from "react";
-import PackageCard from "@/components/PackageCard/PackageCard";
-import TripPlan from "../../../models/TripPlan";
 
+import React, { useEffect, useState } from "react";
+import PackageCard from "@/components/PackageCard/PackageCard";
 
 
 type Package = {
@@ -16,33 +14,30 @@ type Package = {
   creatorImage: string;
 };
 
-type Props = {
-  packages: Package[];
-};
+export default function PackagesPage() {
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-const fetchPackages = async (): Promise<Package[]> => {
-  const packagesRaw = await TripPlan.find({
-    status: "approved",
-    lastEntryDate: { $gte: new Date() },
-  })
-    .populate("creator", "name image") // populate creator info
-    .sort({ createdAt: -1 })
-    .lean();
+  useEffect(() => {
+    fetch("/api/packages")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch");
+        return res.json();
+      })
+      .then((data) => {
+        setPackages(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Failed to load packages");
+        setLoading(false);
+      });
+  }, []);
 
-  return packagesRaw.map((pkg: any) => ({
-    id: pkg._id.toString(),
-    title: pkg.title,
-    description: pkg.description,
-    price: pkg.price,
-    duration: pkg.duration,
-    image: pkg.images?.[0] || "/default-image.jpg",
-    creatorName: pkg.creator?.name || "Unknown",
-    creatorImage: pkg.creator?.image || "/default-avatar.jpg",
-  }));
-};
-
-const PackagesPage: React.FC = async () => {
-  const packages = await fetchPackages();
+  if (loading) return <p>Loading packages...</p>;
+  if (error) return <p>{error}</p>;
 
   return (
     <section className="px-4 py-12 bg-black">
@@ -55,11 +50,11 @@ const PackagesPage: React.FC = async () => {
           <PackageCard
             key={pkg.id}
             id={pkg.id}
-            image={pkg.image || "/default-image.jpg"}
+            image={pkg.image}
             title={pkg.title}
             description={pkg.description}
-            creatorName={pkg.creatorName || "Unknown Creator"}
-            creatorImage={pkg.creatorImage || "/default-avatar.jpg"}
+            creatorName={pkg.creatorName}
+            creatorImage={pkg.creatorImage}
             price={pkg.price}
             duration={pkg.duration}
           />
@@ -67,6 +62,4 @@ const PackagesPage: React.FC = async () => {
       </div>
     </section>
   );
-};
-
-export default PackagesPage;
+}
