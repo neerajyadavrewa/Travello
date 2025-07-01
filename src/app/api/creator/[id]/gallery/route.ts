@@ -11,9 +11,8 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function POST(
-req: NextRequest, context: any
-) {
+// POST handler
+export async function POST(req: NextRequest, context: any) {
   await connectDB();
   const session = await getServerSession(authOptions);
 
@@ -21,7 +20,7 @@ req: NextRequest, context: any
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = context.params;
+  const id = context?.params?.id;
   const { gallery } = await req.json();
 
   if (!Array.isArray(gallery)) {
@@ -49,10 +48,8 @@ req: NextRequest, context: any
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+// DELETE handler
+export async function DELETE(req: NextRequest, context: any) {
   await connectDB();
   const session = await getServerSession(authOptions);
 
@@ -60,7 +57,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const id = context?.params?.id;
   const { imageUrl } = await req.json();
 
   if (!imageUrl) {
@@ -79,21 +76,19 @@ export async function DELETE(
     }
 
     // Extract public_id from Cloudinary URL
-    // Example URL format:
-    // https://res.cloudinary.com/<cloud_name>/image/upload/v1234567890/folder/image.jpg
     const urlParts = imageUrl.split('/');
-    const uploadIndex: number = urlParts.findIndex((part: string) => part === 'upload');
+    const uploadIndex = urlParts.findIndex((part:any) => part === 'upload');
     if (uploadIndex === -1) {
       return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 });
     }
     const publicIdWithExt = urlParts.slice(uploadIndex + 1).join('/');
-    const publicId = publicIdWithExt.replace(/\.[^/.]+$/, ''); // remove extension
+    const publicId = publicIdWithExt.replace(/\.[^/.]+$/, '');
 
     // Delete image from Cloudinary
     await cloudinary.v2.uploader.destroy(publicId);
 
     // Remove image URL from user's gallery array
-    user.gallery = user.gallery.filter((img: string) => img !== imageUrl);
+    user.gallery = user.gallery.filter((img:any) => img !== imageUrl);
     await user.save();
 
     return NextResponse.json({ success: true });
