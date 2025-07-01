@@ -1,9 +1,10 @@
-"use client"; // ✅ Make this a client component
+import React, { Suspense } from "react";
+import BookNow from "./client/BookNow";
 
-import React from "react";
-import BookNowClient from "./BookNowClient";
-export const dynamic = "force-dynamic";
-
-export default function BookNowPage() {
-  return <BookNowClient />;
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading booking form...</div>}>
+      <BookNow />
+    </Suspense>
+  );
 }
