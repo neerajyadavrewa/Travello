@@ -1,4 +1,3 @@
-
 import { connectDB } from "@/lib/db";
 import TripPlan from "../../../../models/TripPlan";
 import { notFound } from "next/navigation";
@@ -9,9 +8,7 @@ import BookingCard from "@/components/BookingCard";
 import { FaMapMarkerAlt, FaClock } from "react-icons/fa";
 
 interface PackageDetailsProps {
-  params: {
-    id: string;
-  };
+  params: { id: string } | Promise<{ id: string }>;
 }
 
 interface TripPlanType {
@@ -28,9 +25,12 @@ interface TripPlanType {
 }
 
 export default async function PackageDetailsPage({ params }: PackageDetailsProps) {
+  // Await params in case it's a Promise
+  const resolvedParams = await params;
+  
   await connectDB();
 
-  const trip = await TripPlan.findById(params.id).lean() as TripPlanType | null;
+  const trip = (await TripPlan.findById(resolvedParams.id).lean()) as TripPlanType | null;
 
   if (!trip) notFound();
 
@@ -77,7 +77,7 @@ export default async function PackageDetailsPage({ params }: PackageDetailsProps
           {/* Right Column - Booking Card */}
           <div>
             <BookingCard 
-              packageId={params.id}
+              packageId={resolvedParams.id}
               lastEntryDate={packageData.lastEntryDate}
               price={packageData.price}
             />
