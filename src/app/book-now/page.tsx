@@ -1,9 +1,7 @@
-import dynamic from "next/dynamic";
-import React from "react";
+"use client"; // ✅ Make this a client component
 
-const BookNowClient = dynamic(() => import("./BookNowClient"), {
-  ssr: false, // ✅ disables static rendering and fixes the build error
-});
+import React from "react";
+import BookNowClient from "./BookNowClient";
 
 export default function BookNowPage() {
   return <BookNowClient />;
