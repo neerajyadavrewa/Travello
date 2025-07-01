@@ -3,8 +3,9 @@ import { connectDB } from '@/lib/db';
 import { User } from '../../../../../../models/User';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function PATCH(req:NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req:NextRequest, context: { params: { id: string } }) {
   await connectDB();
+  const {params} = context;
   const userId = params.id;
 
   try {
