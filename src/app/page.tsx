@@ -1,4 +1,4 @@
-
+"use client";
 import Navbar from "@/components/Navbar/Navbar";
 import Link from "next/link";
 import { ImagesSlider } from "@/components/ui/images-slider";

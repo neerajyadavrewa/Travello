@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import PackageCard from "@/components/PackageCard/PackageCard";
 import TripPlan from "../../../models/TripPlan";
