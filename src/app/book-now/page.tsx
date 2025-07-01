@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
+
+import{ Suspense, useEffect, useState } from "react";
 import { useSearchParams,useRouter } from "next/navigation";
 
 export default function BookNow() {
@@ -144,6 +145,7 @@ export default function BookNow() {
   };
 
   return (
+     <Suspense fallback={<div>Loading booking form...</div>}>
     <div className="min-h-screen bg-black flex items-center justify-center p-6 text-white">
       <div className="max-w-md w-full bg-zinc-900 p-8 rounded-xl shadow-2xl border border-purple-600/20">
         <h2 className="text-3xl font-bold mb-6 text-purple-400">Book Your Trip</h2>
@@ -208,5 +210,6 @@ export default function BookNow() {
         </button>
       </div>
     </div>
+    </Suspense>
   );
 }
