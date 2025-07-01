@@ -2,7 +2,7 @@
 import React from "react";
 import PackageCard from "@/components/PackageCard/PackageCard";
 import TripPlan from "../../../models/TripPlan";
-  export const revalidate = 60 * 60; 
+  export const revalidate = 3600; 
   
 type Package = {
   id: string;
