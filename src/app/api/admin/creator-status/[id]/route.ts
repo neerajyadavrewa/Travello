@@ -1,12 +1,14 @@
-// /app/api/admin/creator-status/[id]/route.ts
-import { connectDB } from '@/lib/db';
-import { User } from '../../../../../../models/User';
+// src/app/api/admin/creator-status/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { connectDB } from '@/lib/db';
+import { User } from '../../../../../../models/User'; // or use your relative path if alias doesn't work
 
-export async function PATCH(req:NextRequest, context: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  context: { params: { id: string } }
+) {
+  const { id } = context.params;
   await connectDB();
-  const {params} = context;
-  const userId = params.id;
 
   try {
     const { status } = await req.json();
@@ -16,7 +18,7 @@ export async function PATCH(req:NextRequest, context: { params: { id: string } }
     }
 
     const updatedUser = await User.findByIdAndUpdate(
-      userId,
+      id,
       {
         creatorRequestStatus: status,
         role: status === 'approved' ? 'creator' : 'user',
