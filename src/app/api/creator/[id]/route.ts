@@ -1,12 +1,13 @@
 import { connectDB } from "@/lib/db";
 import { User } from "../../../../../models/User";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: any) {
   await connectDB();
+  const id = context?.params?.id;
 
   try {
-    const creator = await User.findById(params.id).populate("packages");
+    const creator = await User.findById(id).populate("packages");
 
     if (!creator || creator.role !== "creator") {
       return NextResponse.json({ error: "Creator not found" }, { status: 404 });
@@ -18,16 +19,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+
+export async function PUT(req: NextRequest, context: any) {
   await connectDB();
+  const id = context?.params?.id;
 
   try {
     const body = await req.json();
-    const updatedCreator = await User.findByIdAndUpdate(
-      params.id,
-      body,
-      { new: true }
-    );
+    const updatedCreator = await User.findByIdAndUpdate(id, body, { new: true });
 
     if (!updatedCreator) {
       return NextResponse.json({ error: "Creator not found" }, { status: 404 });

@@ -1,6 +1,6 @@
 import { connectDB } from '@/lib/db';
 import { User } from '../../../../../../models/User';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import cloudinary from 'cloudinary';
@@ -12,8 +12,7 @@ cloudinary.v2.config({
 });
 
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
+req: NextRequest, context: any
 ) {
   await connectDB();
   const session = await getServerSession(authOptions);
@@ -22,7 +21,7 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = context.params;
   const { gallery } = await req.json();
 
   if (!Array.isArray(gallery)) {
