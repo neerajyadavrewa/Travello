@@ -8,7 +8,7 @@ import BookingCard from "@/components/BookingCard";
 import { FaMapMarkerAlt, FaClock } from "react-icons/fa";
 
 interface PackageDetailsProps {
-  params: { id: string } | Promise<{ id: string }>;
+  params: { id: string };
 }
 
 interface TripPlanType {
@@ -25,12 +25,9 @@ interface TripPlanType {
 }
 
 export default async function PackageDetailsPage({ params }: PackageDetailsProps) {
-  // Await params in case it's a Promise
-  const resolvedParams = await params;
-  
   await connectDB();
 
-  const trip = (await TripPlan.findById(resolvedParams.id).lean()) as TripPlanType | null;
+  const trip = (await TripPlan.findById(params.id).lean()) as TripPlanType | null;
 
   if (!trip) notFound();
 
@@ -76,8 +73,8 @@ export default async function PackageDetailsPage({ params }: PackageDetailsProps
 
           {/* Right Column - Booking Card */}
           <div>
-            <BookingCard 
-              packageId={resolvedParams.id}
+            <BookingCard
+              packageId={params.id}
               lastEntryDate={packageData.lastEntryDate}
               price={packageData.price}
             />
