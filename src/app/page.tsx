@@ -20,7 +20,7 @@ import { User } from "../../models/User";
 import PopularPackagesSection from "@/components/PopularPackagesSection/PopularPackagesSection";
 
 
- export const revalidate = 3600; 
+ 
 
 
 
