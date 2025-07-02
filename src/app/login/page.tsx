@@ -35,7 +35,7 @@ export default function LoginPage() {
         {/* Branding */}
         <div className="mb-6">
           <h1 className="text-white text-3xl font-bold">Welcome Back</h1>
-          <p className="text-gray-400 mt-2">Sign in to access your dashboard</p>
+          <p className="text-gray-400 mt-2">Sign in to come inside the Travello</p>
         </div>
 
         {/* Sign-in Button */}
@@ -44,7 +44,7 @@ export default function LoginPage() {
             setLoading(true);
             signIn('google');
           }}
-          className="bg-white text-black flex items-center justify-center gap-3 px-6 py-3 rounded-md hover:bg-gray-100 transition-all w-full font-semibold"
+          className="bg-purple-200 text-black flex items-center justify-center gap-3 px-6 py-3 rounded-md hover:bg-gray-100 transition-all w-full font-semibold"
         >
           <svg
             className="w-5 h-5"
