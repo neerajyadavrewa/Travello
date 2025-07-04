@@ -1,6 +1,7 @@
-"use client";
+  "use client";
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
   FaInstagram,
   FaTwitter,
@@ -24,7 +25,7 @@ const CLOUD_NAME = "ducr9u5lb";
 const UPLOAD_PRESET = "unsigned_profile_upload";
 
 const CreatorProfilePage = () => {
-  const { id } = useParams();
+  const { data: session } = useSession();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,37 +57,36 @@ const CreatorProfilePage = () => {
   const [newProfileImage, setNewProfileImage] = useState<string | null>(null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [bookingSummary, setBookingSummary] = useState<
-  { _id: string; packageTitle: string; totalBookings: number; totalTravelers: number }[]
->([]);
-
+    { _id: string; packageTitle: string; totalBookings: number; totalTravelers: number }[]
+  >([]);
 
   useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    fetch(`/api/creator/${id}`)
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchCreatorByEmail = async () => {
+      if (!session?.user?.email) return;
+      try {
+        const res = await fetch(`/api/creator/by-email/${session.user.email}`);
+        const data = await res.json();
         setCreator(data);
         setEditedCreator(data);
         setEditMode(false);
-      })
-      .catch(() => setMessage("❌ Failed to load creator."))
-      .finally(() => setLoading(false));
-      
-  }, [id]);
+      } catch (err) {
+        setMessage("❌ Failed to load creator.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCreatorByEmail();
+  }, [session?.user?.email]);
 
   useEffect(() => {
-  fetch("/api/creator/bookings-summary")
-    .then((res) => res.json())
-
-    .then((data) => {
-      console.log(data);
-      if (data?.data) setBookingSummary(data.data);
-    })
-
-    .catch(() => console.error("Failed to load booking summary"));
-}, []);
-
+    fetch("/api/creator/bookings-summary")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.data) setBookingSummary(data.data);
+      })
+      .catch(() => console.error("Failed to load booking summary"));
+  }, []);
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -130,7 +130,7 @@ const CreatorProfilePage = () => {
         return;
 
       try {
-        const res = await fetch(`/api/creator/${id}/gallery`, {
+        const res = await fetch(`/api/creator/${creator?._id}/gallery`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageUrl: url }),
@@ -153,7 +153,7 @@ const CreatorProfilePage = () => {
     if (!creator) return;
     const updatedGallery = [...(creator.gallery || []), ...newGalleryImages];
     try {
-      const res = await fetch(`/api/creator/${id}/gallery`, {
+      const res = await fetch(`/api/creator/${creator?._id}/gallery`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gallery: updatedGallery }),
@@ -241,7 +241,7 @@ const CreatorProfilePage = () => {
       };
 
       // Save to backend
-      const res = await fetch(`/api/creator/${id}`, {
+      const res = await fetch(`/api/creator/${creator?._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
