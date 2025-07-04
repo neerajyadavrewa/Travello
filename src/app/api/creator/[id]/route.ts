@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest, context: any) {
   await connectDB();
+
   const id = context?.params?.id;
 
   try {
@@ -13,6 +14,7 @@ export async function GET(req: NextRequest, context: any) {
       return NextResponse.json({ error: "Creator not found" }, { status: 404 });
     }
 
+    
     return NextResponse.json(creator);
   } catch (error) {
     console.error("Error fetching creator:", error);
@@ -38,3 +40,7 @@ export async function PUT(req: NextRequest, context: any) {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
+
+
+
+
