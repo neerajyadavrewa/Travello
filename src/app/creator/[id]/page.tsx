@@ -117,7 +117,7 @@ const CreatorProfilePage = () => {
             body: formData,
           }
         );
-        credentials: "include"
+        
         const data = await res.json();
         if (data.secure_url) uploadedUrls.push(data.secure_url);
       } catch {
