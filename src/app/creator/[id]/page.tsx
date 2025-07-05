@@ -21,7 +21,7 @@ import {
 import PackageCard from "../../../components/PackageCard/PackageCard";
 import { motion, AnimatePresence } from "framer-motion";
 
-const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUD_NAME || "";
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARYCLOUD_NAME || "";
 const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
 
 import { useParams } from "next/navigation";
