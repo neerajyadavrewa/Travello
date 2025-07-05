@@ -21,13 +21,17 @@ import {
 import PackageCard from "../../../components/PackageCard/PackageCard";
 import { motion, AnimatePresence } from "framer-motion";
 
-const CLOUD_NAME = "ducr9u5lb";
-const UPLOAD_PRESET = "unsigned_profile_upload";
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
+const UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || "";
+
+import { useParams } from "next/navigation";
 
 const CreatorProfilePage = () => {
   const { data: session } = useSession();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const params = useParams();
+  const creatorId = params?.id as string | undefined;
 
   type Creator = {
     _id: string;
@@ -60,24 +64,28 @@ const CreatorProfilePage = () => {
     { _id: string; packageTitle: string; totalBookings: number; totalTravelers: number }[]
   >([]);
 
+  
   useEffect(() => {
-    const fetchCreatorByEmail = async () => {
-      if (!session?.user?.email) return;
+    if (!creatorId) return;
+    setLoading(true);
+    const fetchCreatorById = async () => {
       try {
-        const res = await fetch(`/api/creator/by-email/${session.user.email}`);
+        const res = await fetch(`/api/creator/${creatorId}`);
+        if (!res.ok) throw new Error("Creator not found");
         const data = await res.json();
         setCreator(data);
         setEditedCreator(data);
         setEditMode(false);
       } catch (err) {
-        setMessage("❌ Failed to load creator.");
+        setMessage("❌ Failed to load creator profile.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCreatorByEmail();
-  }, [session?.user?.email]);
+    fetchCreatorById();
+  }, [creatorId]);
+
 
   useEffect(() => {
     fetch("/api/creator/bookings-summary")
@@ -87,6 +95,8 @@ const CreatorProfilePage = () => {
       })
       .catch(() => console.error("Failed to load booking summary"));
   }, []);
+
+   const isOwner = session?.user?.id === creator?._id;
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -284,6 +294,12 @@ const CreatorProfilePage = () => {
         </div>
       </div>
     );
+    if (!creator)
+    return (
+      <div className="min-h-screen flex justify-center items-center text-red-400">
+        Creator not found.
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-black text-white px-4 py-10">
@@ -308,7 +324,7 @@ const CreatorProfilePage = () => {
                   alt={creator?.name || "Creator"}
                   className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-indigo-500/80 object-cover shadow-lg"
                 />
-                { editProfileMode && (
+                {isOwner && editProfileMode && (
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -326,7 +342,7 @@ const CreatorProfilePage = () => {
                     />
                   </motion.button>
                 )}
-                {creator?.verified && !editProfileMode && (
+                {isOwner && creator?.verified && !editProfileMode && (
                   <div className="absolute bottom-2 right-2 bg-indigo-600 rounded-full p-1">
                     <FaCheckCircle className="text-white" size={20} />
                   </div>
@@ -336,7 +352,7 @@ const CreatorProfilePage = () => {
             
             <div className="flex-1 text-center md:text-left">
               <div className="flex justify-between items-start">
-                {editProfileMode ? (
+                {isOwner && editProfileMode ? (
                   <div className="w-full">
                     <input
                       type="text"
@@ -368,7 +384,7 @@ const CreatorProfilePage = () => {
                     </p>
                   </div>
                 )}
-                
+                {isOwner && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -390,13 +406,14 @@ const CreatorProfilePage = () => {
                   {editProfileMode ? <FaTimes /> : <FaEdit />}
                   <span>{editProfileMode ? "Cancel" : "Edit Profile"}</span>
                 </motion.button>
+                )}
               </div>
               
             
               
               {/* Social Links */}
               <div className="flex flex-wrap gap-5">
-                {editProfileMode ? (
+                { isOwner && editProfileMode ? (
                   <>
                     <div className="flex items-center gap-2 bg-gray-700/50 rounded-lg px-3 py-2">
                       <FaInstagram className="text-pink-500" />
@@ -492,8 +509,8 @@ const CreatorProfilePage = () => {
               </div>
             </div>
           </div>
-          
-          {editProfileMode && (
+
+          {isOwner && editProfileMode && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -535,7 +552,7 @@ const CreatorProfilePage = () => {
             </h2>
             
             <div className="flex gap-4">
-              {creator?.gallery && creator.gallery.length > 0 && (
+              {isOwner && creator?.gallery && creator.gallery.length > 0 && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -552,7 +569,7 @@ const CreatorProfilePage = () => {
                 </motion.button>
               )}
 
-              <motion.label
+              {isOwner && ( <motion.label
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 transition-all"
@@ -566,7 +583,7 @@ const CreatorProfilePage = () => {
                   className="hidden"
                   onChange={handleGalleryUpload}
                 />
-              </motion.label>
+              </motion.label>)}
             </div>
           </div>
 
@@ -594,70 +611,76 @@ const CreatorProfilePage = () => {
             </div>
           )}
 
-          {galleryToShow.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {galleryToShow.map((img, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  whileHover={{ y: -5 }}
-                  className="relative group overflow-hidden rounded-xl border border-gray-700/50 shadow-lg"
-                >
-                  <img
-                    src={img}
-                    alt={`gallery-${i}`}
-                    className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  
-                  {(newGalleryImages.includes(img) || editMode) && (
-                    <motion.button
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      whileHover={{ scale: 1.1 }}
-                      onClick={() => handleRemoveImage(img)}
-                      className="absolute top-3 right-3 bg-black/80 backdrop-blur-sm text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-lg"
-                      title="Remove"
-                    >
-                      <FaTrashAlt size={18} />
-                    </motion.button>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16 border-2 border-dashed border-gray-700/50 rounded-2xl bg-gray-900/20"
-            >
-              <div className="mb-4">
-                <div className="inline-block p-4 rounded-full bg-gray-800/50 mb-3">
-                  <FaCamera className="text-indigo-500 text-3xl" />
-                </div>
-              </div>
-              <p className="text-gray-500 text-xl mb-3">No images in gallery yet</p>
-              <p className="text-gray-600 max-w-md mx-auto mb-6">
-                Add images to showcase your work and attract more travelers
-              </p>
-              <motion.label
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="cursor-pointer inline-flex items-center gap-2 px-6 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-all"
-              >
-                <FaPlusCircle />
-                <span>Upload Images</span>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleGalleryUpload}
-                />
-              </motion.label>
-            </motion.div>
-          )}
+         {galleryToShow.length > 0 ? (
+  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    {galleryToShow.map((img, i) => (
+      <motion.div
+        key={i}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        whileHover={{ y: -5 }}
+        className="relative group overflow-hidden rounded-xl border border-gray-700/50 shadow-lg"
+      >
+        <img
+          src={img}
+          alt={`gallery-${i}`}
+          className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+
+        {/* Show remove button ONLY if owner and in edit mode or new images */}
+        {isOwner && (newGalleryImages.includes(img) || editMode) && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            onClick={() => handleRemoveImage(img)}
+            className="absolute top-3 right-3 bg-black/80 backdrop-blur-sm text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-lg"
+            title="Remove"
+          >
+            <FaTrashAlt size={18} />
+          </motion.button>
+        )}
+      </motion.div>
+    ))}
+  </div>
+) : (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    className="text-center py-16 border-2 border-dashed border-gray-700/50 rounded-2xl bg-gray-900/20"
+  >
+    <div className="mb-4">
+      <div className="inline-block p-4 rounded-full bg-gray-800/50 mb-3">
+        <FaCamera className="text-indigo-500 text-3xl" />
+      </div>
+    </div>
+    <p className="text-gray-500 text-xl mb-3">No images in gallery yet</p>
+    <p className="text-gray-600 max-w-md mx-auto mb-6">
+      Add images to showcase your work and attract more travelers
+    </p>
+
+    {/* Show upload button ONLY if owner */}
+    {isOwner && (
+      <motion.label
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="cursor-pointer inline-flex items-center gap-2 px-6 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-all"
+      >
+        <FaPlusCircle />
+        <span>Upload Images</span>
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          onChange={handleGalleryUpload}
+        />
+      </motion.label>
+    )}
+  </motion.div>
+)}
+
 
           {newGalleryImages.length > 0 && (
             <motion.div
@@ -688,7 +711,7 @@ const CreatorProfilePage = () => {
             <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-violet-400">
               Trip Packages
             </h2>
-            <motion.button
+            {isOwner? (<motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleCreatePackage}
@@ -696,7 +719,7 @@ const CreatorProfilePage = () => {
             >
               <FaPlusCircle />
               <span>Create New Package</span>
-            </motion.button>
+            </motion.button>) : null}
           </div>
           
           {creator?.packages && creator.packages.length > 0 ? (
@@ -733,7 +756,7 @@ const CreatorProfilePage = () => {
             </motion.div>
           )}
         </motion.section>
-        {bookingSummary.length > 0 && (
+        {isOwner && bookingSummary.length > 0 && (
   <motion.section
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
