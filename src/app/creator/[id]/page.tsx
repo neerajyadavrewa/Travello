@@ -21,8 +21,8 @@ import {
 import PackageCard from "../../../components/PackageCard/PackageCard";
 import { motion, AnimatePresence } from "framer-motion";
 
-const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
-const UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || "";
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUD_NAME || "";
+const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
 
 import { useParams } from "next/navigation";
 
@@ -86,7 +86,7 @@ const CreatorProfilePage = () => {
     fetchCreatorById();
   }, [creatorId]);
 
-
+    
   useEffect(() => {
     fetch("/api/creator/bookings-summary")
       .then((res) => res.json())
@@ -95,7 +95,7 @@ const CreatorProfilePage = () => {
       })
       .catch(() => console.error("Failed to load booking summary"));
   }, []);
-
+    
    const isOwner = session?.user?.id === creator?._id;
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,7 +124,7 @@ const CreatorProfilePage = () => {
         setMessage("❌ Image upload failed.");
       }
     }
-
+     
     setNewGalleryImages((prev) => [...prev, ...uploadedUrls]);
     setUploading(false);
   };
