@@ -346,7 +346,7 @@ export default function TripForm() {
         <div className="grid sm:grid-cols-2 gap-6">
           {[
             { label: "Trip Title", name: "title", type: "text", placeholder: "Trip to the Alps", icon: "✏️" },
-            { label: "Price (USD)", name: "price", type: "number", placeholder: "499.99", icon: "💰" },
+            { label: "Price (INR)", name: "price", type: "number", placeholder: "499.99", icon: "💰" },
             { label: "Duration (Days)", name: "duration", type: "number", placeholder: "7", icon: "⏳" },
             { label: "Location", name: "location", type: "text", placeholder: "Switzerland", icon: "📍" },
             { label: "Images (URLs)", name: "images", type: "text", placeholder: "https://img1.jpg, https://img2.jpg", icon: "🖼️" },
