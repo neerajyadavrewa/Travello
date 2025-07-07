@@ -8,7 +8,10 @@ export async function GET(req: NextRequest, context: any) {
   const id = context?.params?.id;
 
   try {
-    const creator = await User.findById(id).populate("packages");
+    const creator = await User.findById(id).populate({
+      path:"packages",
+      match: { status: "approved" },
+    });
 
     if (!creator || creator.role !== "creator") {
       return NextResponse.json({ error: "Creator not found" }, { status: 404 });

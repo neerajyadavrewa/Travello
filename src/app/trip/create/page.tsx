@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import VideoPreviewPlayer from "@/components/VideoPreviewPlayer";
 
@@ -10,8 +10,8 @@ interface TripFormData {
   price: string;
   duration: string;
   location: string;
-  images: string;
-  videos: string;
+  images: string; // comma separated URLs pasted by user
+  videos: string; // comma separated URLs pasted by user
   lastEntryDate: string;
 }
 
@@ -34,6 +34,14 @@ export default function TripForm() {
   const [activeField, setActiveField] = useState<string | null>(null);
   const [particles, setParticles] = useState<Array<{id: number, size: number, x: number, y: number, duration: number}>>([]);
   const [isClient, setIsClient] = useState(false);
+
+  // Uploaded media URLs
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedVideos, setUploadedVideos] = useState<string[]>([]);
+
+  // Uploading states
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadingVideos, setUploadingVideos] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -72,6 +80,110 @@ export default function TripForm() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Cloudinary info from env variables
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
+
+  // Handle image upload input (device files)
+  const handleImageFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setUploadingImages(true);
+    setMessage(null);
+
+    try {
+      const files = Array.from(e.target.files);
+      const uploadedUrls: string[] = [];
+
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", uploadPreset);
+
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (data.secure_url) {
+          uploadedUrls.push(data.secure_url);
+        } else {
+          setMessage({ type: "error", text: "Failed to upload some images." });
+        }
+      }
+
+      setUploadedImages(prev => [...prev, ...uploadedUrls]);
+    } catch (error) {
+      setMessage({ type: "error", text: "Image upload failed. Try again." });
+    } finally {
+      setUploadingImages(false);
+      e.target.value = "";
+    }
+  };
+
+  // Handle video upload input (device files)
+  const handleVideoFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setUploadingVideos(true);
+    setMessage(null);
+
+    try {
+      const files = Array.from(e.target.files);
+      const uploadedUrls: string[] = [];
+
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", uploadPreset);
+
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (data.secure_url) {
+          uploadedUrls.push(data.secure_url);
+        } else {
+          setMessage({ type: "error", text: "Failed to upload some videos." });
+        }
+      }
+
+      setUploadedVideos(prev => [...prev, ...uploadedUrls]);
+    } catch (error) {
+      setMessage({ type: "error", text: "Video upload failed. Try again." });
+    } finally {
+      setUploadingVideos(false);
+      e.target.value = "";
+    }
+  };
+
+  // Remove uploaded image by index
+  const handleRemoveUploadedImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Remove pasted image URL by index
+  const handleRemovePastedImage = (index: number) => {
+    const pastedUrls = formData.images.split(",").map(i => i.trim()).filter(Boolean);
+    pastedUrls.splice(index, 1);
+    setFormData(prev => ({ ...prev, images: pastedUrls.join(", ") }));
+  };
+
+  // Remove uploaded video by index
+  const handleRemoveUploadedVideo = (index: number) => {
+    setUploadedVideos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Remove pasted video URL by index
+  const handleRemovePastedVideo = (index: number) => {
+    const pastedUrls = formData.videos.split(",").map(i => i.trim()).filter(Boolean);
+    pastedUrls.splice(index, 1);
+    setFormData(prev => ({ ...prev, videos: pastedUrls.join(", ") }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -80,6 +192,13 @@ export default function TripForm() {
     setMessage(null);
 
     try {
+      // Merge pasted URLs + uploaded URLs for images and videos
+      const pastedImageUrls = formData.images.split(",").map(i => i.trim()).filter(Boolean);
+      const pastedVideoUrls = formData.videos.split(",").map(i => i.trim()).filter(Boolean);
+
+      const allImages = [...pastedImageUrls, ...uploadedImages];
+      const allVideos = [...pastedVideoUrls, ...uploadedVideos];
+
       const res = await fetch("/api/trip/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,8 +206,8 @@ export default function TripForm() {
           ...formData,
           price: parseFloat(formData.price),
           duration: parseInt(formData.duration),
-          images: formData.images.split(",").map(i => i.trim()),
-          videos: formData.videos.split(",").map(v => v.trim()),
+          images: allImages,
+          videos: allVideos,
         }),
       });
 
@@ -96,6 +215,8 @@ export default function TripForm() {
       if (res.ok) {
         setMessage({ type: "success", text: json.message });
         setFormData(initialForm);
+        setUploadedImages([]);
+        setUploadedVideos([]);
       } else {
         setMessage({ type: "error", text: json.error || "Submission failed." });
       }
@@ -106,10 +227,10 @@ export default function TripForm() {
     }
   };
 
-  const imagePreviews = formData.images.split(",").map(i => i.trim()).filter(Boolean);
-  const videoPreviews = formData.videos.split(",").map(v => v.trim()).filter(Boolean);
+  // Prepare arrays for media previews
+  const pastedImagePreviews = formData.images.split(",").map(i => i.trim()).filter(Boolean);
+  const pastedVideoPreviews = formData.videos.split(",").map(i => i.trim()).filter(Boolean);
 
-  // Animation variants
   const formItemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
@@ -145,11 +266,11 @@ export default function TripForm() {
           ))}
         </div>
       )}
-      
+
       {/* Glowing background elements */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-900 rounded-full filter blur-[120px] opacity-20"></div>
       <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-indigo-800 rounded-full filter blur-[100px] opacity-15"></div>
-      
+
       {/* Page Heading */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -169,7 +290,7 @@ export default function TripForm() {
             </svg>
           </div>
         </motion.div>
-        
+
         <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-300 mb-4">
           Plan Your Adventure
         </h1>
@@ -319,8 +440,56 @@ export default function TripForm() {
           )}
         </motion.div>
 
+        {/* Image Upload Input */}
+        <motion.div
+          variants={formItemVariants}
+          initial="hidden"
+          animate="visible"
+          className="mt-6"
+        >
+          <label className="text-purple-300 mb-2 font-medium flex items-center">
+            <span className="mr-2 text-purple-400">📤</span>
+            Upload Images
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageFilesChange}
+            disabled={uploadingImages}
+            className="w-full text-sm text-gray-200 file:bg-gradient-to-r file:from-purple-700 file:to-indigo-700 file:text-white file:px-4 file:py-2 file:rounded-lg file:border-0 cursor-pointer bg-black/60 border border-purple-700/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+          />
+          {uploadingImages && (
+            <p className="mt-1 text-sm text-purple-300">Uploading images...</p>
+          )}
+        </motion.div>
+
+        {/* Video Upload Input */}
+        <motion.div
+          variants={formItemVariants}
+          initial="hidden"
+          animate="visible"
+          className="mt-6"
+        >
+          <label className="text-purple-300 mb-2 font-medium flex items-center">
+            <span className="mr-2 text-purple-400">📤</span>
+            Upload Videos
+          </label>
+          <input
+            type="file"
+            accept="video/*"
+            multiple
+            onChange={handleVideoFilesChange}
+            disabled={uploadingVideos}
+            className="w-full text-sm text-gray-200 file:bg-gradient-to-r file:from-purple-700 file:to-indigo-700 file:text-white file:px-4 file:py-2 file:rounded-lg file:border-0 cursor-pointer bg-black/60 border border-purple-700/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+          />
+          {uploadingVideos && (
+            <p className="mt-1 text-sm text-purple-300">Uploading videos...</p>
+          )}
+        </motion.div>
+
         {/* Media Previews */}
-        {(imagePreviews.length > 0 || videoPreviews.length > 0) && (
+        {(pastedImagePreviews.length > 0 || uploadedImages.length > 0 || pastedVideoPreviews.length > 0 || uploadedVideos.length > 0) && (
           <motion.div 
             variants={formItemVariants}
             initial="hidden"
@@ -332,14 +501,16 @@ export default function TripForm() {
               <h3 className="text-lg font-semibold text-purple-300 px-4">Media Previews</h3>
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-purple-700/20 to-transparent"></div>
             </div>
-            
+
+            {/* Images Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {imagePreviews.map((src, idx) => (
+              {/* Pasted Image URLs */}
+              {pastedImagePreviews.map((src, idx) => (
                 <motion.div
-                  key={idx}
+                  key={"pasted-img-" + idx}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.1 }}
+                  transition={{ delay: idx * 0.05 }}
                   className="relative group overflow-hidden rounded-xl"
                 >
                   <img
@@ -347,16 +518,83 @@ export default function TripForm() {
                     alt={`preview-${idx}`}
                     className="rounded-xl h-28 w-full object-cover border border-purple-800/30 group-hover:opacity-80 transition-opacity"
                   />
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePastedImage(idx)}
+                    title="Remove"
+                    className="absolute top-1 right-1 bg-red-600 bg-opacity-80 rounded-full p-1 text-white opacity-80 hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                    <span className="text-xs text-white truncate">Image {idx + 1}</span>
+                    <span className="text-xs text-white truncate">Image {idx + 1} (URL)</span>
                   </div>
                 </motion.div>
               ))}
-                     
-              {videoPreviews.map((src, idx) => (
-              <VideoPreviewPlayer key={idx} src={src} index={imagePreviews.length + idx} />
-                 ))}
+
+              {/* Uploaded Images */}
+              {uploadedImages.map((src, idx) => (
+                <motion.div
+                  key={"uploaded-img-" + idx}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: (pastedImagePreviews.length + idx) * 0.05 }}
+                  className="relative group overflow-hidden rounded-xl"
+                >
+                  <img
+                    src={src}
+                    alt={`uploaded-preview-${idx}`}
+                    className="rounded-xl h-28 w-full object-cover border border-purple-800/30 group-hover:opacity-80 transition-opacity"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveUploadedImage(idx)}
+                    title="Remove"
+                    className="absolute top-1 right-1 bg-red-600 bg-opacity-80 rounded-full p-1 text-white opacity-80 hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                    <span className="text-xs text-white truncate">Image {pastedImagePreviews.length + idx + 1} (Uploaded)</span>
+                  </div>
+                </motion.div>
+              ))}
             </div>
+
+            {/* Videos Grid */}
+            {(pastedVideoPreviews.length > 0 || uploadedVideos.length > 0) && (
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Pasted Video URLs */}
+                {pastedVideoPreviews.map((src, idx) => (
+                  <div key={"pasted-video-" + idx} className="relative group rounded-xl overflow-hidden border border-purple-800/30">
+                    <VideoPreviewPlayer src={src} index={pastedImagePreviews.length + idx} />
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePastedVideo(idx)}
+                      title="Remove"
+                      className="absolute top-1 right-1 bg-red-600 bg-opacity-80 rounded-full p-1 text-white opacity-80 hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+
+                {/* Uploaded Videos */}
+                {uploadedVideos.map((src, idx) => (
+                  <div key={"uploaded-video-" + idx} className="relative group rounded-xl overflow-hidden border border-purple-800/30">
+                    <VideoPreviewPlayer src={src} index={pastedImagePreviews.length + pastedVideoPreviews.length + idx} />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveUploadedVideo(idx)}
+                      title="Remove"
+                      className="absolute top-1 right-1 bg-red-600 bg-opacity-80 rounded-full p-1 text-white opacity-80 hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -369,12 +607,12 @@ export default function TripForm() {
         >
           <motion.button
             type="submit"
-            disabled={loading}
+            disabled={loading || uploadingImages || uploadingVideos}
             className="w-full py-4 bg-gradient-to-r from-purple-700/90 to-indigo-700/90 hover:from-purple-700 hover:to-indigo-800 text-white font-medium rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed group relative overflow-hidden border border-purple-500/20 shadow-lg shadow-purple-900/20"
-            whileHover={{ scale: loading ? 1 : 1.02 }}
+            whileHover={{ scale: loading || uploadingImages || uploadingVideos ? 1 : 1.02 }}
             whileTap={{ scale: 0.97 }}
           >
-            {loading ? (
+            {(loading || uploadingImages || uploadingVideos) ? (
               <div className="flex items-center justify-center">
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
