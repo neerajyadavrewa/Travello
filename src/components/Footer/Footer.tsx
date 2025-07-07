@@ -15,9 +15,8 @@ function Footer() {
           {/* Left Section: Branding */}
           <div className="flex flex-col items-center md:items-start space-y-4">
            <span className="block text-3xl sm:text-5xl font-bold  "><ColourfulText text={words} /></span>
-            <p className="text-sm text-stone-400 text-center md:text-left max-w-sm">
-             🎉 Your Gateway to Event-Based Travel Experiences!
-             From music festivals to cultural fests — Travello plans it all so you can just live the moment.
+            <p className="text-sm text-stone-600 text-center md:text-left max-w-sm">
+             — Travello plans it all so you can just live the moment.
             </p>
           </div>
 

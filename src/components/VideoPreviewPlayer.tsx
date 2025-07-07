@@ -1,11 +1,25 @@
 "use client";
-import { useRef, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-export default function VideoPreviewPlayer({ src, index }: { src: string; index: number }) {
+export default function VideoPreviewPlayer({
+  src,
+  index,
+}: {
+  src: string;
+  index: number;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.muted = isMuted;
+      video.play().catch(() => setIsPlaying(false));
+    }
+  }, []);
 
   const toggleMute = () => {
     const video = videoRef.current;
@@ -28,68 +42,37 @@ export default function VideoPreviewPlayer({ src, index }: { src: string; index:
     }
   };
 
-  const seek = (seconds: number) => {
-    const video = videoRef.current;
-    if (video) {
-      video.currentTime += seconds;
-    }
-  };
-
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.1 }}
-      className="relative group overflow-hidden rounded-xl"
+      transition={{ delay: index * 0.1, ease: "easeOut" }}
+      className="relative group rounded-xl overflow-hidden"
     >
       <video
         ref={videoRef}
         src={src}
-        className="rounded-xl h-28 w-full object-cover border border-purple-800/30"
-        preload="metadata"
-        autoPlay
-        muted
+        className="h-48 w-full object-cover rounded-xl border border-purple-700/30"
         loop
+        muted={isMuted}
+        autoPlay
         playsInline
+        preload="metadata"
       />
 
-      {/* Control Overlay */}
-      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between p-2 text-white">
-        {/* Rewind */}
+      {/* Overlay Controls */}
+      <div className="absolute inset-0 bg-black/40 group-hover:opacity-100 opacity-0 transition-opacity duration-300 flex items-center justify-center gap-3">
         <button
-          onClick={() => seek(-10)}
-          className="bg-black/50 hover:bg-black/70 rounded-full p-2"
-          title="Rewind 10s"
+          onClick={togglePlay}
+          className="p-2 bg-black/60 hover:bg-black/80 rounded-full text-white"
         >
-          ⏪
+          {isPlaying ? "⏸" : "▶"}
         </button>
-
-        {/* Center Play / Mute */}
-        <div className="flex flex-col items-center space-y-2">
-          <button
-            onClick={togglePlay}
-            className="bg-black/50 hover:bg-black/70 rounded-full p-2"
-            title="Play/Pause"
-          >
-            {isPlaying ? "⏸️" : "▶️"}
-          </button>
-
-          <button
-            onClick={toggleMute}
-            className="bg-black/50 hover:bg-black/70 rounded-full p-2"
-            title="Mute/Unmute"
-          >
-            {isMuted ? "🔇" : "🔊"}
-          </button>
-        </div>
-
-        {/* Forward */}
         <button
-          onClick={() => seek(10)}
-          className="bg-black/50 hover:bg-black/70 rounded-full p-2"
-          title="Forward 10s"
+          onClick={toggleMute}
+          className="p-2 bg-black/60 hover:bg-black/80 rounded-full text-white"
         >
-          ⏩
+          {isMuted ? "🔇" : "🔊"}
         </button>
       </div>
     </motion.div>

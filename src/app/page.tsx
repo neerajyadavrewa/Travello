@@ -93,26 +93,13 @@ const session = await getServerSession(authOptions);
 
   </div>
 </div>
-
-      
        <PopularPackagesSection />
-
-
-
-       
-       
      <div>
         <div>
       <CreatorsSection/>
     </div>
      </div>
-
-
-
-      {/* Footer */}
-      <Footer/>
     </div>
-    
     </>
   );
 }

@@ -123,42 +123,57 @@ export default function TripForm() {
   };
 
   // Handle video upload input (device files)
-  const handleVideoFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    setUploadingVideos(true);
-    setMessage(null);
+  const [videoProgress, setVideoProgress] = useState(0);
 
-    try {
-      const files = Array.from(e.target.files);
-      const uploadedUrls: string[] = [];
+const handleVideoFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files || e.target.files.length === 0) return;
+  setUploadingVideos(true);
+  setMessage(null);
+  setVideoProgress(0);
 
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("upload_preset", uploadPreset);
+  try {
+    const files = Array.from(e.target.files);
+    const uploadedUrls: string[] = [];
 
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
-          method: "POST",
-          body: formData,
-        });
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
 
-        const data = await res.json();
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`);
 
-        if (data.secure_url) {
-          uploadedUrls.push(data.secure_url);
-        } else {
-          setMessage({ type: "error", text: "Failed to upload some videos." });
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setVideoProgress(percent);
         }
-      }
+      });
 
-      setUploadedVideos(prev => [...prev, ...uploadedUrls]);
-    } catch (error) {
-      setMessage({ type: "error", text: "Video upload failed. Try again." });
-    } finally {
-      setUploadingVideos(false);
-      e.target.value = "";
+      xhr.onload = () => {
+        const response = JSON.parse(xhr.responseText);
+        if (response.secure_url) {
+          uploadedUrls.push(response.secure_url);
+          setUploadedVideos(prev => [...prev, response.secure_url]);
+        } else {
+          setMessage({ type: "error", text: "Some videos failed to upload." });
+        }
+      };
+
+      xhr.onerror = () => {
+        setMessage({ type: "error", text: "Video upload failed. Try again." });
+      };
+
+      xhr.send(formData);
     }
-  };
+  } catch (err) {
+    setMessage({ type: "error", text: "Something went wrong with video upload." });
+  } finally {
+    setUploadingVideos(false);
+    e.target.value = "";
+    setVideoProgress(0);
+  }
+};
 
   // Remove uploaded image by index
   const handleRemoveUploadedImage = (index: number) => {
@@ -593,6 +608,15 @@ export default function TripForm() {
                     </button>
                   </div>
                 ))}
+                                       {uploadingVideos && (
+                  <div className="mt-2 w-full bg-purple-800/20 rounded-full h-3 overflow-hidden">
+                    <div
+                className="bg-purple-500 h-3 rounded-full transition-all duration-300 ease-in-out"
+                 style={{ width: `${videoProgress}%` }}
+                    ></div>
+                    </div>
+                                        )}
+
               </div>
             )}
           </motion.div>
@@ -634,21 +658,6 @@ export default function TripForm() {
           </motion.button>
         </motion.div>
       </motion.form>
-
-      {/* Footer */}
-      <motion.footer 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="mt-16 text-center text-sm text-gray-500 flex flex-col items-center relative z-10"
-      >
-        <div className="flex items-center">
-          <div className="h-px w-16 bg-gradient-to-r from-transparent to-purple-700/20"></div>
-          <span className="mx-3 text-lg">✈️</span>
-          <div className="h-px w-16 bg-gradient-to-r from-purple-700/20 to-transparent"></div>
-        </div>
-        <p className="mt-4">Built with ❤️ by Neeraj — Your dream destination, one form away.</p>
-      </motion.footer>
     </div>
   );
 }
